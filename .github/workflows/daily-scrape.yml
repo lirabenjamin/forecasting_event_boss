@@ -2,7 +2,7 @@ name: Daily Kalshi Scraper
 
 on:
   schedule:
-    - cron: '46 19 * * *'  # 1 AM UTC daily
+    - cron: '51 19 * * *'  # 1 AM UTC daily
   workflow_dispatch:  # Manual trigger
 
 jobs:
@@ -25,4 +25,4 @@ jobs:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPO_OWNER: ${{ secrets.GITHUB_REPO_OWNER }}
         GITHUB_REPO_NAME: ${{ secrets.GITHUB_REPO_NAME }}
-      run: python simple_scraper.py
+      run: python picking_events.py

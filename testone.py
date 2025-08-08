@@ -99,11 +99,17 @@ def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='m
 def main():
     """Test run - scrape and upload once"""
     logger.info("=== TEST RUN - Kalshi Scraper ===")
+
+    dotenv.load_dotenv()
     
     # Get environment variables
-    github_token = os.getenv('GITHUB_TOKEN')
-    repo_owner = os.getenv('GITHUB_REPO_OWNER')  
-    repo_name = os.getenv('GITHUB_REPO_NAME')    
+    github_token = os.getenv('TOKEN')
+    repo_owner = os.getenv('REPO_OWNER')  
+    repo_name = os.getenv('REPO_NAME')    
+
+    print(github_token)
+    print(repo_owner)
+    print(repo_name)
     
     if not github_token:
         logger.error("GITHUB_TOKEN not found in environment variables")

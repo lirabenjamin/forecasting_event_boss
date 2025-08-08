@@ -2,9 +2,8 @@ name: Daily Kalshi Scraper
 
 on:
   schedule:
-    # Run at 1:00 AM UTC daily
-    - cron: '0 1 * * *'
-  workflow_dispatch: # Allow manual trigger
+    - cron: '0 18 * * *'  # 1 AM UTC daily
+  workflow_dispatch:  # Manual trigger
 
 jobs:
   scrape:
@@ -19,22 +18,11 @@ jobs:
         python-version: '3.9'
     
     - name: Install dependencies
-      run: |
-        pip install -r requirements.txt
+      run: pip install -r requirements.txt
     
     - name: Run scraper
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
-        AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
-        S3_BUCKET_NAME: ${{ secrets.S3_BUCKET_NAME }}
-        PASTEBIN_API_KEY: ${{ secrets.PASTEBIN_API_KEY }}
-      run: python kalshi_scraper.py
-    
-    - name: Upload artifacts
-      uses: actions/upload-artifact@v3
-      with:
-        name: kalshi-events
-        path: |
-          *.txt
-          *.json
+        GITHUB_REPO_OWNER: ${{ secrets.GITHUB_REPO_OWNER }}
+        GITHUB_REPO_NAME: ${{ secrets.GITHUB_REPO_NAME }}
+      run: python simple_scraper.py

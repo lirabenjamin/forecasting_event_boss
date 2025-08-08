@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """
-Simple Kalshi Event Scraper - Pushes files directly to GitHub
+Test version of your Kalshi scraper - runs once and uploads to GitHub
 """
 
 from forecasting import KalshiAPI
@@ -10,23 +10,25 @@ import os
 import json
 import requests
 import logging
+import base64
+import dotenv
+
+dotenv.load_dotenv()
 
 # Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
-
-# Configuration
-REFRESH_EVENTS = True
-EXPERIMENTID = 'daily_scrape'
 
 def scrape_kalshi_events():
     """Your existing scraping logic"""
     logger.info("Starting Kalshi event scraping...")
     
     kalshi = KalshiAPI()
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+    today = datetime.date.today().strftime("%y%m%d")
     events_files = [f"events_{today}.txt", 'todays_events.txt']
     
+    # Your original code
+    REFRESH_EVENTS = True
     if REFRESH_EVENTS:
         events = kalshi.fetch_all_events(status='open')
         events = [event['event_ticker'] for event in events if len(event['markets']) < 6]
@@ -46,10 +48,7 @@ def scrape_kalshi_events():
     return events_files, events
 
 def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='main'):
-    """
-    Push file directly to GitHub repository
-    Simple method using GitHub API
-    """
+    """Push file directly to GitHub repository"""
     filename = os.path.basename(filepath)
     
     # Read file content
@@ -69,9 +68,11 @@ def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='m
     sha = None
     if response.status_code == 200:
         sha = response.json()['sha']
+        logger.info(f"File {filename} exists, will update it")
+    else:
+        logger.info(f"File {filename} doesn't exist, will create it")
     
     # Prepare the data
-    import base64
     content_encoded = base64.b64encode(content.encode('utf-8')).decode('utf-8')
     
     data = {
@@ -88,35 +89,55 @@ def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='m
     
     if response.status_code in [200, 201]:
         download_url = response.json()['content']['download_url']
-        logger.info(f"✅ Pushed {filename} to GitHub: {download_url}")
+        logger.info(f"✅ Pushed {filename} to GitHub")
+        logger.info(f"🌐 Public URL: {download_url}")
         return download_url
     else:
         logger.error(f"❌ Failed to push {filename}: {response.text}")
         return None
 
 def main():
-    """Main function - runs the scraping and GitHub push"""
+    """Test run - scrape and upload once"""
+    logger.info("=== TEST RUN - Kalshi Scraper ===")
+    
     # Get environment variables
     github_token = os.getenv('GITHUB_TOKEN')
-    repo_owner = os.getenv('GITHUB_REPO_OWNER')  # Your GitHub username
-    repo_name = os.getenv('GITHUB_REPO_NAME')    # Repository name
+    repo_owner = os.getenv('GITHUB_REPO_OWNER')  
+    repo_name = os.getenv('GITHUB_REPO_NAME')    
     
-    if not all([github_token, repo_owner, repo_name]):
-        logger.error("Missing required environment variables:")
-        logger.error("GITHUB_TOKEN, GITHUB_REPO_OWNER, GITHUB_REPO_NAME")
+    if not github_token:
+        logger.error("GITHUB_TOKEN not found in environment variables")
+        logger.info("Make sure you've set: export GITHUB_TOKEN='your_token_here'")
         return
     
+    if not repo_owner:
+        logger.error("GITHUB_REPO_OWNER not set")
+        logger.info("Set it with: export GITHUB_REPO_OWNER='your_github_username'")
+        return
+        
+    if not repo_name:
+        logger.warning("GITHUB_REPO_NAME not set, using default 'kalshi-events'")
+        repo_name = 'kalshi-events'
+    
+    logger.info(f"Will upload to: https://github.com/{repo_owner}/{repo_name}")
+    
     # Scrape events
-    files, events = scrape_kalshi_events()
+    try:
+        files, events = scrape_kalshi_events()
+        logger.info(f"✅ Scraped {len(events)} events successfully")
+    except Exception as e:
+        logger.error(f"❌ Failed to scrape events: {e}")
+        return
     
     if not files:
-        logger.error("Failed to scrape events")
+        logger.error("No files to upload")
         return
     
     # Push files to GitHub
     urls = {}
     for filepath in files:
         if os.path.exists(filepath):
+            logger.info(f"Uploading {filepath}...")
             url = push_to_github_repo(filepath, github_token, repo_owner, repo_name)
             if url:
                 urls[filepath] = url
@@ -125,10 +146,16 @@ def main():
     with open('github_urls.json', 'w') as f:
         json.dump(urls, f, indent=2)
     
-    logger.info("=== Summary ===")
-    logger.info(f"Processed {len(events)} events")
+    # Summary
+    logger.info("=" * 50)
+    logger.info("🎉 TEST COMPLETED SUCCESSFULLY!")
+    logger.info(f"📊 Processed {len(events)} events")
+    logger.info("📁 Your files are now public at:")
+    
     for filepath, url in urls.items():
-        logger.info(f"{filepath} -> {url}")
+        logger.info(f"   {os.path.basename(filepath)}: {url}")
+    
+    logger.info("💾 URLs saved to github_urls.json")
 
 if __name__ == "__main__":
     main()

@@ -1,5 +1,8 @@
 name: Daily Kalshi Scraper
 
+permissions:
+  contents: write
+
 on:
   schedule:
     - cron: '51 19 * * *'  # 1 AM UTC daily

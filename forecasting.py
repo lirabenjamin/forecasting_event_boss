@@ -120,18 +120,18 @@ top6_personas = [
 ]
 
 # ------------------------- DB LOGGING -------------------------
-mongo_client = MongoClient(os.getenv("MONGODB_URI"))
-db = mongo_client["forecasting"]
+# mongo_client = MongoClient(os.getenv("MONGODB_URI"))
+# db = mongo_client["forecasting"]
 
-def test_db_connection():
-    try:
-        mongo_client.admin.command('ping')
-        logger.info("✅ Successfully connected to MongoDB.")
-    except Exception as e:
-        logger.error(f"❌ Failed to connect to MongoDB: {e}")
-        raise
+# def test_db_connection():
+#     try:
+#         mongo_client.admin.command('ping')
+#         logger.info("✅ Successfully connected to MongoDB.")
+#     except Exception as e:
+#         logger.error(f"❌ Failed to connect to MongoDB: {e}")
+#         raise
 
-test_db_connection()
+# test_db_connection()
 def write_to_db(collection_name, data):
     """
     Writes a dictionary or list of dictionaries to the specified collection.

@@ -97,9 +97,9 @@ def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='m
 def main():
     """Main function - runs the scraping and GitHub push"""
     # Get environment variables
-    github_token = os.getenv('GITHUB_TOKEN')
-    repo_owner = os.getenv('GITHUB_REPO_OWNER')  # Your GitHub username
-    repo_name = os.getenv('GITHUB_REPO_NAME')    # Repository name
+    github_token = os.getenv('TOKEN')
+    repo_owner = os.getenv('REPO_OWNER')  # Your GitHub username
+    repo_name = os.getenv('REPO_NAME')    # Repository name
     
     if not all([github_token, repo_owner, repo_name]):
         logger.error("Missing required environment variables:")

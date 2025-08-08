@@ -21,8 +21,6 @@ jobs:
       run: pip install -r requirements.txt
     
     - name: Run scraper
-      with: 
-        token: ${{ secrets.GITHUB_TOKEN }}
       env:
         GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         GITHUB_REPO_OWNER: ${{ secrets.GITHUB_REPO_OWNER }}

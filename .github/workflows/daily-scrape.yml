@@ -2,7 +2,7 @@ name: Daily Kalshi Scraper
 
 on:
   schedule:
-    - cron: '15 19 * * *'  # 1 AM UTC daily
+    - cron: '46 19 * * *'  # 1 AM UTC daily
   workflow_dispatch:  # Manual trigger
 
 jobs:

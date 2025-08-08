@@ -24,7 +24,7 @@ def scrape_kalshi_events():
     logger.info("Starting Kalshi event scraping...")
     
     kalshi = KalshiAPI()
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S"))
+    today = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
     events_files = [f"events_{today}.txt", 'todays_events.txt']
     
     if REFRESH_EVENTS:

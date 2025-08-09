@@ -57,7 +57,7 @@ def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='m
         content = f.read()
     
     # GitHub API URL
-    url = f"https://api.github.com/repos/{repo_owner}/{repo_name}/contents/{filename}"
+    url = f"https://api.github.com/repos/lirabenjamin/forecasting_event_boss/contents/{filename}"
     
     # Check if file exists to get its SHA (required for updates)
     headers = {

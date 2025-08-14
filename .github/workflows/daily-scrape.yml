@@ -5,27 +5,27 @@ permissions:
 
 on:
   schedule:
-    - cron: '51 19 * * *'  # 1 AM UTC daily
-  workflow_dispatch:  # Manual trigger
+    - cron: '0 1 * * *'  # actually 1:00 UTC daily
+  workflow_dispatch:
 
 jobs:
   scrape:
     runs-on: ubuntu-latest
-    
     steps:
-    - uses: actions/checkout@v3
-    
-    - name: Set up Python
-      uses: actions/setup-python@v4
-      with:
-        python-version: '3.9'
-    
-    - name: Install dependencies
-      run: pip install -r requirements.txt
-    
-    - name: Run scraper
-      env:
-        GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        GITHUB_REPO_OWNER: ${{ secrets.GITHUB_REPO_OWNER }}
-        GITHUB_REPO_NAME: ${{ secrets.GITHUB_REPO_NAME }}
-      run: python picking_events.py
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'   # or 3.9 if you must
+
+      - name: Install dependencies
+        run: pip install -r requirements.txt
+
+      - name: Run scraper
+        env:
+          # Default GITHUB_TOKEN provided by Actions; permissions above grant contents:write
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # Give the script the repo in owner/repo form from the runner context
+          GITHUB_REPOSITORY: ${{ github.repository }}
+        run: python picking_events.py

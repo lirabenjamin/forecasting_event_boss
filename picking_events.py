@@ -1,134 +1,107 @@
 #!/usr/bin/env python3
-"""
-Simple Kalshi Event Scraper - Pushes files directly to GitHub
-"""
-
-from forecasting import KalshiAPI
-import random
-import datetime
-import os
+import base64
+import datetime as dt
 import json
-import requests
 import logging
+import os
+import random
+import requests
+from forecasting import KalshiAPI
 
-# Set up logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Configuration
 REFRESH_EVENTS = True
 EXPERIMENTID = 'daily_scrape'
 
+def utc_stamp():
+    # Safe for paths/URLs
+    return dt.datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+
 def scrape_kalshi_events():
-    """Your existing scraping logic"""
     logger.info("Starting Kalshi event scraping...")
-    
     kalshi = KalshiAPI()
-    today = datetime.datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
-    events_files = [f"events_{today}.txt", 'todays_events.txt']
-    
+    ts = utc_stamp()
+    events_files = [f"events_{ts}.txt", "todays_events.txt"]
+
     if REFRESH_EVENTS:
         events = kalshi.fetch_all_events(status='open')
-        events = [event['event_ticker'] for event in events if len(event['markets']) < 6]
+        events = [e['event_ticker'] for e in events if len(e['markets']) < 6]
         random.shuffle(events)
-        
-        # Save events to files
-        for file in events_files:
-            with open(file, 'w') as f:
-                for event in events:
-                    f.write(f"{event}\n")
-            logger.info(f"Saved {len(events)} events to {file}")
-    
-    # Load events from file
-    with open(events_files[1], 'r') as f:
+
+        for path in events_files:
+            with open(path, "w") as f:
+                f.write("\n".join(events))
+            logger.info(f"Saved {len(events)} events to {path}")
+
+    with open(events_files[1], "r") as f:
         events = [line.strip() for line in f if line.strip()]
-    
     return events_files, events
 
-def push_to_github_repo(filepath, github_token, repo_owner, repo_name, branch='main'):
-    """
-    Push file directly to GitHub repository
-    Simple method using GitHub API
-    """
+def push_to_github_repo(filepath, github_token, repo_full, branch='main'):
+    owner, repo = repo_full.split("/", 1)
     filename = os.path.basename(filepath)
-    
-    # Read file content
-    with open(filepath, 'r') as f:
+
+    with open(filepath, "r") as f:
         content = f.read()
-    
-    # GitHub API URL
-    url = f"https://api.github.com/repos/lirabenjamin/forecasting_event_boss/contents/{filename}"
-    
-    # Check if file exists to get its SHA (required for updates)
+    content_encoded = base64.b64encode(content.encode("utf-8")).decode("utf-8")
+
+    base = f"https://api.github.com/repos/{owner}/{repo}/contents/{filename}"
     headers = {
-        "Authorization": f"token {github_token}",
-        "Accept": "application/vnd.github.v3+json"
+        "Authorization": f"Bearer {github_token}",
+        "Accept": "application/vnd.github+json",
     }
-    
-    response = requests.get(url, headers=headers)
-    sha = None
-    if response.status_code == 200:
-        sha = response.json()['sha']
-    
-    # Prepare the data
-    import base64
-    content_encoded = base64.b64encode(content.encode('utf-8')).decode('utf-8')
-    
+
+    # Get current SHA if file exists
+    r = requests.get(base, headers=headers)
+    sha = r.json().get("sha") if r.status_code == 200 else None
+
     data = {
-        "message": f"Update {filename} - {datetime.datetime.now().strftime('%Y-%m-%d %H:%M:%S UTC')}",
+        "message": f"Update {filename} - {utc_stamp()}",
         "content": content_encoded,
-        "branch": branch
+        "branch": branch,
     }
-    
-    if sha:  # File exists, include SHA for update
+    if sha:
         data["sha"] = sha
-    
-    # Push to GitHub
-    response = requests.put(url, json=data, headers=headers)
-    
-    if response.status_code in [200, 201]:
-        download_url = response.json()['content']['download_url']
-        logger.info(f"✅ Pushed {filename} to GitHub: {download_url}")
-        return download_url
-    else:
-        logger.error(f"❌ Failed to push {filename}: {response.text}")
-        return None
+
+    r = requests.put(base, json=data, headers=headers)
+    if r.status_code in (200, 201):
+        url = r.json()["content"]["html_url"]
+        logger.info(f"✅ Pushed {filename} to GitHub: {url}")
+        return url
+    logger.error(f"❌ Failed to push {filename}: {r.status_code} {r.text}")
+    return None
 
 def main():
-    """Main function - runs the scraping and GitHub push"""
-    # Get environment variables
-    github_token = os.getenv('GITHUB_TOKEN')
-    repo_owner = os.getenv('GITHUB_REPO_OWNER')  # Your GitHub username
-    repo_name = os.getenv('GITHUB_REPO_NAME')    # Repository name
-    
-    if not all([github_token, repo_owner, repo_name]):
-        logger.error("Missing required environment variables:")
-        logger.error("GITHUB_TOKEN, GITHUB_REPO_OWNER, GITHUB_REPO_NAME")
+    github_token = os.getenv("GITHUB_TOKEN")
+    repo_full = os.getenv("GITHUB_REPOSITORY")  # e.g., "owner/repo"
+
+    if not github_token:
+        logger.error("Missing GITHUB_TOKEN in environment.")
         return
-    
-    # Scrape events
+    if not repo_full:
+        logger.error("Missing GITHUB_REPOSITORY in environment (owner/repo).")
+        return
+
     files, events = scrape_kalshi_events()
-    
     if not files:
         logger.error("Failed to scrape events")
         return
-    
-    # Push files to GitHub
+
     urls = {}
-    for filepath in files:
-        if os.path.exists(filepath):
-            url = push_to_github_repo(filepath, github_token, repo_owner, repo_name)
+    for path in files:
+        if os.path.exists(path):
+            url = push_to_github_repo(path, github_token, repo_full)
             if url:
-                urls[filepath] = url
-    
-    # Save URLs for reference
-    with open('github_urls.json', 'w') as f:
+                urls[path] = url
+
+    with open("github_urls.json", "w") as f:
         json.dump(urls, f, indent=2)
-    
+
     logger.info("=== Summary ===")
     logger.info(f"Processed {len(events)} events")
-    for filepath, url in urls.items():
-        logger.info(f"{filepath} -> {url}")
+    for path, url in urls.items():
+        logger.info(f"{path} -> {url}")
 
 if __name__ == "__main__":
     main()

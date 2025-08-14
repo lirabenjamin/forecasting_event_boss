@@ -9,4 +9,4 @@ jobs:
   ping:
     runs-on: ubuntu-latest
     steps:
-      - run: echo "::notice:: $(date -u) — schedule fired"
+      - run: echo "hello world"
